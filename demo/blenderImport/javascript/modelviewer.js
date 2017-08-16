@@ -1,75 +1,92 @@
-// The detector will show a warning if the current browser does not support WebGL.
-if (!Detector.webgl) {
-    Detector.addGetWebGLMessage();
-}
-
-// Window properties and scene variables
 var container;
-var camera, controls, scene, renderer;
-var lighting, ambient, keyLight, fillLight, backLight;
+var camera, scene, renderer;
+var mouseX = 0, mouseY = 0;
 var windowHalfX = window.innerWidth / 2;
 var windowHalfY = window.innerHeight / 2;
 
-init();
 animate();
 
 function init() {
-    container = document.createElement('div');
-    document.body.appendChild(container);
+	container = document.createElement( 'div' );
+	document.body.appendChild( container );
 
-    camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000);
-    camera.position.z = 3;
+	camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 2000 );
+	camera.position.z = 5;
 
-    scene = new THREE.Scene();
-    ambient = new THREE.AmbientLight(0xffffff, 1.0);
-    scene.add(ambient);
+	// scene
+	scene = new THREE.Scene();
+	var ambient = new THREE.AmbientLight( 0xC0C0C0 );
+	scene.add( ambient );
+	var directionalLight = new THREE.DirectionalLight( 0xFFEEDD );
+	directionalLight.position.set( 0, 0, 1 );
+	scene.add( directionalLight );
 
-    keyLight = new THREE.DirectionalLight(new THREE.Color('hsl(30, 100%, 75%)'), 1.0);
-    keyLight.position.set(-100, 0, 100);
-    
-    fillLight = new THREE.DirectionalLight(new THREE.Color('hsl(240, 100%, 75%)'), 0.75);
-    fillLight.position.set(100, 0, 100);
-    
-    backLight = new THREE.DirectionalLight(0xffffff, 1.0);
-    backLight.position.set(100, 0, -100).normalize();
-    
-    scene.add(keyLight);
-    scene.add(fillLight);
-    scene.add(backLight);
+	// texture
+	var manager = new THREE.LoadingManager();
+	manager.onProgress = function ( item, loaded, total ) {
+		console.log( item, loaded, total );
+	};
 
-    var mtlLoader = new THREE.MTLLoader();
-    mtlLoader.setBaseUrl('models/');
-    mtlLoader.setPath('models/');
-    mtlLoader.load('giraffe.mtl', function (materials) {
+	var texture = new THREE.Texture();
+	var onProgress = function ( xhr ) {
+		if ( xhr.lengthComputable ) {
+			var percentComplete = xhr.loaded / xhr.total * 100;
+			console.log( Math.round(percentComplete, 2) + '% downloaded' );
+		}
+	};
 
-        materials.preload();
+	var onError = function ( xhr ) {};
 
-        materials.materials.default.map.magFilter = THREE.NearestFilter;
-        materials.materials.default.map.minFilter = THREE.LinearFilter;
+	var loader = new THREE.ImageLoader( manager );
+	loader.load( 'models/giraffe.png', function ( image ) {
+		texture.image = image;
+		texture.needsUpdate = true;
+	} );
 
-        var objLoader = new THREE.OBJLoader();
-        objLoader.setMaterials(materials);
-        objLoader.setPath('models/');
-        objLoader.load('giraffe.obj', function (object) {
-            scene.add(object);
-        });
-    });
+	// model
+	var loader = new THREE.OBJLoader( manager );
+	loader.load( 'models/giraffe.obj', function ( object ) {
+		object.traverse( function ( child ) {
+			if ( child instanceof THREE.Mesh ) {
+				child.material.map = texture;
+			}
+		} );
+		scene.add( object );
+	}, onProgress, onError );
 
-    renderer = new THREE.WebGLRenderer();
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(new THREE.Color("hsl(0, 0%, 10%)"));
-    
-    container.appendChild(renderer.domElement);
+	//
+	renderer = new THREE.WebGLRenderer();
+	renderer.setPixelRatio( window.devicePixelRatio );
+	renderer.setSize( window.innerWidth, window.innerHeight );
+	container.appendChild( renderer.domElement );
+	document.addEventListener( 'mousemove', onDocumentMouseMove, false );
 
-    controls = new THREE.OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.25;
-    controls.enableZoom = false;
+	//
+	window.addEventListener( 'resize', onWindowResize, false );
+}
+
+function onWindowResize() {
+	windowHalfX = window.innerWidth / 2;
+	windowHalfY = window.innerHeight / 2;
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
+	renderer.setSize( window.innerWidth, window.innerHeight );
+}
+
+function onDocumentMouseMove( event ) {
+	mouseX = ( event.clientX - windowHalfX ) / 2;
+	mouseY = ( event.clientY - windowHalfY ) / 2;
+}
+
+//
+function animate() {
+	requestAnimationFrame( animate );
+	render();
 }
 
 function render() {
-    requestAnimationFrame(render);
-    controls.update();
-    renderer.render(scene, camera);
+	camera.position.x += ( mouseX - camera.position.x ) * .005;
+	camera.position.y += ( - mouseY - camera.position.y ) * .005;
+	camera.lookAt( scene.position );
+	renderer.render( scene, camera );
 }

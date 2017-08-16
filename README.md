@@ -10,3 +10,7 @@ The whole atlas on the cube:
 A rendered tree using the same texture:
 
 ![ss2](https://cloud.githubusercontent.com/assets/11724289/23604495/f5615b5a-020d-11e7-8d09-9ca3a2c2d7f3.png)
+
+
+Blender Import Demo:
+Uses Three.js to load a obj format model and texture with lighting and mouse over rotation.
