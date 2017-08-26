@@ -59,31 +59,43 @@ function setupScene() {
 
   var cityGeometry = new THREE.Geometry();
 
-  // Box Blur map
+  // Gaussian(ish) Blur map
   var map = new Array(100);
+  var blurMap = new Array(100);
+
   for (var index = 0; index < 100; index++) {
     map[index] = new Array(100);
+    blurMap[index] = new Array(100);
 
     for (var column = 0; column < 100; column++) {
-      map[index][column] = Math.random(0, 1000);
+      map[index][column] = Math.random(-10, 10) * 3;
     }
   }
 
+  var corner = 1/16;
+  var adjacent = 1/8;
+  var center = 1/4;
+
   for (var row = 0; row < 100; row++) {
     for (var column = 0; column < 100; column++) {
-      if (row > 0 && row < 99 && column > 0 && column < 99) {
-        var average = map[row-1][column-1];
-        average += map[row-1][column];
-        average += map[row-1][column+1];
-        average += map[row][column];
-        average += map[row][column+1];
-        average += map[row][column];
-        average += map[row+1][column+1];
-        average += map[row+1][column];
-        average += map[row+1][column+1];
+      var upRow = clamp(0, 99, row - 1);
+      var downRow = clamp(0, 99, row + 1);
+      var upCol = clamp(0, 99, column - 1);
+      var downCol = clamp(0, 99, column + 1);
 
-        average = average / 9;
-        map[row][column] = average;
+      var sum = map[upRow][upCol] * corner;
+      sum += map[upRow][column] * adjacent;
+      sum += map[upRow][downCol] * corner;
+      sum += map[row][upCol] * adjacent;
+      sum += map[row][downCol] * adjacent;
+      sum += map[row][column] * center;
+      sum += map[downRow][upCol] * corner;
+      sum += map[downRow][column] * adjacent;
+      sum += map[downRow][downCol] * corner;
+
+      blurMap[row][column] = sum;
+      if(blurMap[row][column] < 1) {
+        blurMap[row][column] = 0;
       }
     }
   }
@@ -93,8 +105,11 @@ function setupScene() {
       var building = new THREE.Mesh(geometry.clone());
       building.position.x = row;
       building.position.z = column;
-      building.scale.y  = map[row][column];
-      THREE.GeometryUtils.merge(cityGeometry, building);
+      building.scale.y  = blurMap[row][column];
+
+      if (blurMap[row][column] > 0) {
+        THREE.GeometryUtils.merge(cityGeometry, building);
+      }
     }
   }
 
@@ -103,12 +118,12 @@ function setupScene() {
   city.receiveShadow = true;
   scene.add(city);
 
-  var light = new THREE.DirectionalLight(0xf6e86d, 1);
+  var light = new THREE.DirectionalLight(0xf6e86d, 0.75);
   light.castShadow = true;
   light.shadowDarkness = 0.5;
   light.shadowMapWidth = 2048;
   light.shadowMapHeight = 2048;
-  light.position.set(50, 150, 50); 
+  light.position.set(0, 150, 0); 
   light.shadowCameraFar = 2500; 
   // DirectionalLight only; not necessary for PointLight
   light.shadowCameraLeft = -1000;
@@ -117,7 +132,7 @@ function setupScene() {
   light.shadowCameraBottom = -1000;
   scene.add(light);
 
-  scene.fog = new THREE.FogExp2(0x9db3b5, 0.002);
+  scene.fog = new THREE.FogExp2(0x9db3b5, 0.008);
 }
 
 function onWindowResize() {
@@ -137,4 +152,14 @@ function animate() {
 
 function render() {
 	renderer.render( scene, camera );
+}
+
+function clamp(min, max, term) {
+  if (term < min) {
+    return min;
+  } else if (term > max) {
+    return max;
+  } else {
+    return term;
+  }
 }
