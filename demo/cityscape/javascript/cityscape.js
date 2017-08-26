@@ -30,6 +30,7 @@ function init() {
 	renderer = new THREE.WebGLRenderer();
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
+	renderer.shadowMapEnabled = true;
 	container.appendChild( renderer.domElement );
 	document.addEventListener( 'mousemove', onDocumentMouseMove, false );
 
@@ -43,12 +44,13 @@ function setupScene() {
   var mat = new THREE.MeshBasicMaterial({color: 0x9db3b5, overdraw: true});
   var floor = new THREE.Mesh(geo, mat);
   floor.rotation.x = -90 * Math.PI / 180;
+  floor.receiveShadow = true;
   scene.add(floor);
 
   // Original building
   var geometry = new THREE.CubeGeometry(1, 1, 1);
   geometry.applyMatrix(new THREE.Matrix4().makeTranslation(0, 0.5, 0));
-  var material = new THREE.MeshNormalMaterial({overdraw: true});
+  var material = new THREE.MeshPhongMaterial({color: 0x555555, overdraw: true});
 
   var cityGeometry = new THREE.Geometry();
 
@@ -63,7 +65,26 @@ function setupScene() {
   }
 
   var city = new THREE.Mesh(cityGeometry, material);
+  city.castShadow = true;
+  city.receiveShadow = true;
   scene.add(city);
+
+  var light = new THREE.DirectionalLight(0xf6e86d, 1);
+  light.position.set(1, 3, 2);
+  light.castShadow = true;
+  light.shadowDarkness = 0.5;
+  light.shadowMapWidth = 2048;
+  light.shadowMapHeight = 2048;
+  light.position.set(500, 1500, 1000); 
+  light.shadowCameraFar = 2500; 
+  // DirectionalLight only; not necessary for PointLight
+  light.shadowCameraLeft = -1000;
+  light.shadowCameraRight = 1000;
+  light.shadowCameraTop = 1000;
+  light.shadowCameraBottom = -1000;
+  scene.add(light);
+
+  scene.fog = new THREE.FogExp2(0x9db3b5, 0.002);
 }
 
 function onWindowResize() {
