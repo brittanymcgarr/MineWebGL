@@ -12,8 +12,8 @@ function init() {
 	document.body.appendChild( container );
 
 	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
-	camera.position.z = 500;
-	camera.position.y = 500;
+	camera.position.z = 1;
+	camera.position.y = 5;
 
 	// scene
 	scene = new THREE.Scene();
@@ -36,7 +36,7 @@ function init() {
 
   clock = new THREE.Clock();
   controls = new THREE.FirstPersonControls(camera);
-  controls.movementSpeed = 100;
+  controls.movementSpeed = 5;
   controls.lookSpeed = 0.07;
 
 	//
@@ -45,28 +45,57 @@ function init() {
 
 function setupScene() {
   // Floor
-  var geo = new THREE.PlaneGeometry(2000, 2000, 20, 20);
-  var mat = new THREE.MeshBasicMaterial({color: 0x9db3b5, overdraw: true});
+  var geo = new THREE.PlaneGeometry(200, 200, 2, 2);
+  var mat = new THREE.MeshBasicMaterial({color: 0x0077AA, overdraw: true});
   var floor = new THREE.Mesh(geo, mat);
   floor.rotation.x = -90 * Math.PI / 180;
   floor.receiveShadow = true;
   scene.add(floor);
 
-  // Original building
+  // Base block
   var geometry = new THREE.CubeGeometry(1, 1, 1);
   geometry.applyMatrix(new THREE.Matrix4().makeTranslation(0, 0.5, 0));
-  var material = new THREE.MeshPhongMaterial({color: 0x555555, overdraw: true});
+  var material = new THREE.MeshPhongMaterial({color: 0x00AA44, overdraw: true});
 
   var cityGeometry = new THREE.Geometry();
 
-  for (var i = 0; i < 250; i++) {
-    var building = new THREE.Mesh(geometry.clone());
-    building.position.x = Math.floor(Math.random() * 200 - 100) * 4;
-    building.position.z = Math.floor(Math.random() * 200 - 100) * 4;
-    building.scale.x  = Math.random() * 50 + 10;
-    building.scale.y  = Math.random() * building.scale.x * 8 + 8;
-    building.scale.z  = building.scale.x;
-    THREE.GeometryUtils.merge(cityGeometry, building);
+  // Box Blur map
+  var map = new Array(100);
+  for (var index = 0; index < 100; index++) {
+    map[index] = new Array(100);
+
+    for (var column = 0; column < 100; column++) {
+      map[index][column] = Math.random(0, 1000);
+    }
+  }
+
+  for (var row = 0; row < 100; row++) {
+    for (var column = 0; column < 100; column++) {
+      if (row > 0 && row < 99 && column > 0 && column < 99) {
+        var average = map[row-1][column-1];
+        average += map[row-1][column];
+        average += map[row-1][column+1];
+        average += map[row][column];
+        average += map[row][column+1];
+        average += map[row][column];
+        average += map[row+1][column+1];
+        average += map[row+1][column];
+        average += map[row+1][column+1];
+
+        average = average / 9;
+        map[row][column] = average;
+      }
+    }
+  }
+
+  for (var row = 0; row < 100; row++) {
+    for (var column = 0; column < 100; column++) {
+      var building = new THREE.Mesh(geometry.clone());
+      building.position.x = row;
+      building.position.z = column;
+      building.scale.y  = map[row][column];
+      THREE.GeometryUtils.merge(cityGeometry, building);
+    }
   }
 
   var city = new THREE.Mesh(cityGeometry, material);
@@ -79,7 +108,7 @@ function setupScene() {
   light.shadowDarkness = 0.5;
   light.shadowMapWidth = 2048;
   light.shadowMapHeight = 2048;
-  light.position.set(500, 1500, 1000); 
+  light.position.set(50, 150, 50); 
   light.shadowCameraFar = 2500; 
   // DirectionalLight only; not necessary for PointLight
   light.shadowCameraLeft = -1000;
