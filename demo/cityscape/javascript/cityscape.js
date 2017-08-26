@@ -1,5 +1,6 @@
 var container;
 var camera, scene, renderer;
+var controls, clock;
 var mouseX = 0, mouseY = 0;
 var windowHalfX = window.innerWidth / 2;
 var windowHalfY = window.innerHeight / 2;
@@ -10,7 +11,7 @@ function init() {
 	container = document.createElement( 'div' );
 	document.body.appendChild( container );
 
-	camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 2000 );
+	camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 10000 );
 	camera.position.z = 500;
 	camera.position.y = 500;
 
@@ -27,12 +28,16 @@ function init() {
   setupScene();
 
 	//
-	renderer = new THREE.WebGLRenderer();
+	renderer = new THREE.WebGLRenderer({antialias: true});
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	renderer.shadowMapEnabled = true;
 	container.appendChild( renderer.domElement );
-	document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+
+  clock = new THREE.Clock();
+  controls = new THREE.FirstPersonControls(camera);
+  controls.movementSpeed = 100;
+  controls.lookSpeed = 0.07;
 
 	//
 	window.addEventListener( 'resize', onWindowResize, false );
@@ -54,7 +59,7 @@ function setupScene() {
 
   var cityGeometry = new THREE.Geometry();
 
-  for (var i = 0; i < 300; i++) {
+  for (var i = 0; i < 250; i++) {
     var building = new THREE.Mesh(geometry.clone());
     building.position.x = Math.floor(Math.random() * 200 - 100) * 4;
     building.position.z = Math.floor(Math.random() * 200 - 100) * 4;
@@ -95,20 +100,13 @@ function onWindowResize() {
 	renderer.setSize( window.innerWidth, window.innerHeight );
 }
 
-function onDocumentMouseMove( event ) {
-	mouseX = ( event.clientX - windowHalfX ) / 2;
-	mouseY = ( event.clientY - windowHalfY ) / 2;
-}
-
 //
 function animate() {
 	requestAnimationFrame( animate );
+	controls.update(clock.getDelta());
 	render();
 }
 
 function render() {
-	camera.position.x += ( mouseX - camera.position.x ) * .005;
-	camera.position.y += ( - mouseY - camera.position.y ) * .005;
-	camera.lookAt( scene.position );
 	renderer.render( scene, camera );
 }
