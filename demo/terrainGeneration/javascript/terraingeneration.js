@@ -163,3 +163,23 @@ function clamp(min, max, term) {
     return term;
   }
 }
+
+function fourCornerGeneration(map, upperLeft, lowerRight) {
+  if(upperLeft[0] < lowerRight[0] && upperLeft[1] < lowerRight[1]) {
+    var midRow = (lowerRight[0] + upperLeft[0]) / 2;
+    var midCol = (lowerRight[1] + upperLeft[1]) / 2;
+
+    var average = map[upperLeft[0]][upperLeft[1]];
+    average += map[upperLeft[0]][lowerRight[1]];
+    average += map[lowerRight[0]][upperLeft[1]];
+    average += map[lowerRight[0]][lowerRight[1]];
+    average = average / 4;
+
+    map[midRow][midCol] = average;
+
+    fourCornerGeneration(map, upperLeft, [midRow, midCol]);
+    fourCornerGeneration(map, [upperLeft[0], midCol], [midRow, lowerRight[1]]);
+    fourCornerGeneration(map, [midRow, upperLeft[1]], [lowerRight[0], midCol]);
+    fourCornerGeneration(map, [midRow, midCol], lowerRight);
+  }
+}
